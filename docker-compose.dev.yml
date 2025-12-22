@@ -1,0 +1,15 @@
+# Simple Docker Compose for development (uses H2 in-memory database)
+version: '3.8'
+
+services:
+  najaspad:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: najaspad-app-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    restart: unless-stopped
+

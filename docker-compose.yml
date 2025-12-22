@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  najaspad:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: najaspad-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/najaspad
+      - SPRING_DATASOURCE_USERNAME=najaspad
+      - SPRING_DATASOURCE_PASSWORD=najaspad_password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+    depends_on:
+      - postgres
+    networks:
+      - najaspad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: najaspad-db
+    environment:
+      - POSTGRES_DB=najaspad
+      - POSTGRES_USER=najaspad
+      - POSTGRES_PASSWORD=najaspad_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - najaspad-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U najaspad"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  najaspad-network:
+    driver: bridge
+
