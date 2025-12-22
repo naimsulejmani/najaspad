@@ -27,44 +27,73 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h4">Najaspad — Online Notepad</h1>
-        <div>
+        <div th:if="${unlocked}">
             <button id="saveBtn" class="btn btn-primary">Save</button>
         </div>
     </div>
 
-    <form th:action="@{/{id}(id=${notepad.id})}" method="post" id="notepadForm">
-        <div class="mb-3">
-            <label for="password" class="form-label">Password (optional)</label>
-            <input type="password" class="form-control" id="password" name="password"
-                   th:value="${notepad.password}" placeholder="Set a password to protect this note">
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Content</label>
-            <!-- Quill editor container -->
-            <div id="editor" th:utext="${notepad.content}"></div>
-            <!-- Hidden textarea to send HTML content to backend -->
-            <textarea name="content" id="content" style="display:none;" th:text="${notepad.content}"></textarea>
-        </div>
-
-        <!-- Keep a hidden field for id so the server receives it if needed -->
-        <input type="hidden" name="id" th:value="${notepad.id}" />
-
-        <!-- Optional: show shareable URL -->
-        <div class="mb-3">
-            <label class="form-label">Shareable URL</label>
-            <div class="input-group">
-                <input type="text" class="form-control" id="shareUrl" readonly
-                       th:value="${#httpServletRequest.getRequestURL()}" />
-                <button type="button" class="btn btn-outline-secondary" id="copyBtn">Copy</button>
+    <!-- If the notepad is locked, show an unlock/password form -->
+    <div th:if="${!unlocked}">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">This note is password protected</h5>
+                <p th:if="${error}" th:text="${error}" class="text-danger"></p>
+                <form th:action="@{/{id}/open(id=${notepad.id})}" method="post">
+                    <div class="mb-3">
+                        <label for="unlockPassword" class="form-label">Enter password</label>
+                        <input type="password" class="form-control" id="unlockPassword" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Open</button>
+                </form>
             </div>
         </div>
 
-        <!-- Fallback save button for non-JS users -->
-        <noscript>
-            <button type="submit" class="btn btn-primary">Save</button>
-        </noscript>
-    </form>
+        <!-- Also show the shareable URL and basic info while locked -->
+        <div class="mb-3">
+            <label class="form-label">Shareable URL</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="shareUrl" readonly th:value="${shareUrl}" />
+                <button type="button" class="btn btn-outline-secondary" id="copyBtn">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor and save UI only when unlocked -->
+    <div th:if="${unlocked}">
+        <form th:action="@{/{id}(id=${notepad.id})}" method="post" id="notepadForm">
+            <div class="mb-3">
+                <label for="password" class="form-label">Password (optional)</label>
+                <input type="password" class="form-control" id="password" name="password"
+                       th:value="${notepad.password}" placeholder="Set a password to protect this note">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <!-- Quill editor container -->
+                <div id="editor"></div>
+                <!-- Hidden textarea to send HTML content to backend -->
+                <textarea name="content" id="content" style="display:none;" th:utext="${notepad.content}"></textarea>
+            </div>
+
+            <!-- Keep a hidden field for id so the server receives it if needed -->
+            <input type="hidden" name="id" th:value="${notepad.id}" />
+
+            <!-- Optional: show shareable URL -->
+            <div class="mb-3">
+                <label class="form-label">Shareable URL</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="shareUrl2" readonly
+                           th:value="${shareUrl}" />
+                    <button type="button" class="btn btn-outline-secondary" id="copyBtn2">Copy</button>
+                </div>
+            </div>
+
+            <!-- Fallback save button for non-JS users -->
+            <noscript>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </noscript>
+        </form>
+    </div>
 
     <footer class="mt-4 text-muted small">
         Tip: Use the Save button or Ctrl+S (if your browser supports it) to persist changes. Use a password to protect your note.
@@ -79,53 +108,71 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
 
 <script>
-    // Initialize Quill editor
-    const quill = new Quill('#editor', {
-        theme: 'snow',
-        modules: {
-            toolbar: [
-                [{header: [1, 2, 3, false]}],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{list: 'ordered'}, {list: 'bullet'}],
-                ['blockquote', 'code-block'],
-                ['link', 'image'],
-                [{color: []}, {background: []}],
-                ['clean']
-            ]
-        }
-    });
+    // Initialize Quill editor only if #editor exists
+    if (document.querySelector('#editor')) {
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{header: [1, 2, 3, false]}],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{list: 'ordered'}, {list: 'bullet'}],
+                    ['blockquote', 'code-block'],
+                    ['link', 'image'],
+                    [{color: []}, {background: []}],
+                    ['clean']
+                ]
+            }
+        });
 
-    // Copy initial HTML from textarea into editor if textarea has content but editor is empty (server rendered)
-    const initialContent = document.getElementById('content').value;
-    if (initialContent && quill.getLength() === 1) {
-        // setContents using HTML: use clipboard module to convert HTML to Delta
-        const delta = quill.clipboard.convert(initialContent);
-        quill.setContents(delta);
+        // Copy initial HTML from textarea into editor if textarea has content but editor is empty (server rendered)
+        const initialContent = document.getElementById('content').value;
+        if (initialContent) {
+            // Always set the editor contents from server HTML to ensure saved content appears
+            const delta = quill.clipboard.convert(initialContent);
+            quill.setContents(delta);
+        }
+
+        // On save button, copy HTML to hidden textarea and submit form
+        document.getElementById('saveBtn').addEventListener('click', function () {
+            document.getElementById('content').value = quill.root.innerHTML;
+            document.getElementById('notepadForm').submit();
+        });
+
+        // Copy shareable URL to clipboard
+        document.getElementById('copyBtn2').addEventListener('click', async function () {
+            const url = document.getElementById('shareUrl2').value;
+            try {
+                await navigator.clipboard.writeText(url);
+                this.textContent = 'Copied';
+                setTimeout(() => this.textContent = 'Copy', 1500);
+            } catch (e) {
+                alert('Unable to copy URL');
+            }
+        });
     }
 
-    // On save button, copy HTML to hidden textarea and submit form
-    document.getElementById('saveBtn').addEventListener('click', function () {
-        document.getElementById('content').value = quill.root.innerHTML;
-        document.getElementById('notepadForm').submit();
-    });
+    // Copy shareable URL for locked view
+    const copyBtn = document.getElementById('copyBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async function () {
+            const url = document.getElementById('shareUrl').value;
+            try {
+                await navigator.clipboard.writeText(url);
+                this.textContent = 'Copied';
+                setTimeout(() => this.textContent = 'Copy', 1500);
+            } catch (e) {
+                alert('Unable to copy URL');
+            }
+        });
+    }
 
-    // Copy shareable URL to clipboard
-    document.getElementById('copyBtn').addEventListener('click', async function () {
-        const url = document.getElementById('shareUrl').value;
-        try {
-            await navigator.clipboard.writeText(url);
-            this.textContent = 'Copied';
-            setTimeout(() => this.textContent = 'Copy', 1500);
-        } catch (e) {
-            alert('Unable to copy URL');
-        }
-    });
-
-    // Optional: Ctrl+S to save
+    // Optional: Ctrl+S to save (only if editor exists)
     window.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
-            document.getElementById('saveBtn').click();
+            const saveBtn = document.getElementById('saveBtn');
+            if (saveBtn) saveBtn.click();
         }
     });
 </script>

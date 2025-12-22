@@ -1,4 +1,8 @@
 package dev.naimsulejmani.najaspad;
 
-public interface NotepadRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface NotepadRepository extends JpaRepository<Notepad, String> {
 }
