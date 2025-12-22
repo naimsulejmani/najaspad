@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Najaspad — Online Notepad</title>
+
+    <!-- Bootstrap CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-..." crossorigin="anonymous">
+
+    <!-- Quill editor CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+
+    <style>
+        /* make editor take most of the viewport height */
+        #editor {
+            min-height: 50vh;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4">Najaspad — Online Notepad</h1>
+        <div>
+            <button id="saveBtn" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+
+    <form th:action="@{/{id}(id=${notepad.id})}" method="post" id="notepadForm">
+        <div class="mb-3">
+            <label for="password" class="form-label">Password (optional)</label>
+            <input type="password" class="form-control" id="password" name="password"
+                   th:value="${notepad.password}" placeholder="Set a password to protect this note">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Content</label>
+            <!-- Quill editor container -->
+            <div id="editor" th:utext="${notepad.content}"></div>
+            <!-- Hidden textarea to send HTML content to backend -->
+            <textarea name="content" id="content" style="display:none;" th:text="${notepad.content}"></textarea>
+        </div>
+
+        <!-- Keep a hidden field for id so the server receives it if needed -->
+        <input type="hidden" name="id" th:value="${notepad.id}" />
+
+        <!-- Optional: show shareable URL -->
+        <div class="mb-3">
+            <label class="form-label">Shareable URL</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="shareUrl" readonly
+                       th:value="${#httpServletRequest.getRequestURL()}" />
+                <button type="button" class="btn btn-outline-secondary" id="copyBtn">Copy</button>
+            </div>
+        </div>
+
+        <!-- Fallback save button for non-JS users -->
+        <noscript>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </noscript>
+    </form>
+
+    <footer class="mt-4 text-muted small">
+        Tip: Use the Save button or Ctrl+S (if your browser supports it) to persist changes. Use a password to protect your note.
+    </footer>
+</div>
+
+<!-- Bootstrap JS (bundle with Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-..." crossorigin="anonymous"></script>
+
+<!-- Quill JS -->
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+
+<script>
+    // Initialize Quill editor
+    const quill = new Quill('#editor', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{header: [1, 2, 3, false]}],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{list: 'ordered'}, {list: 'bullet'}],
+                ['blockquote', 'code-block'],
+                ['link', 'image'],
+                [{color: []}, {background: []}],
+                ['clean']
+            ]
+        }
+    });
+
+    // Copy initial HTML from textarea into editor if textarea has content but editor is empty (server rendered)
+    const initialContent = document.getElementById('content').value;
+    if (initialContent && quill.getLength() === 1) {
+        // setContents using HTML: use clipboard module to convert HTML to Delta
+        const delta = quill.clipboard.convert(initialContent);
+        quill.setContents(delta);
+    }
+
+    // On save button, copy HTML to hidden textarea and submit form
+    document.getElementById('saveBtn').addEventListener('click', function () {
+        document.getElementById('content').value = quill.root.innerHTML;
+        document.getElementById('notepadForm').submit();
+    });
+
+    // Copy shareable URL to clipboard
+    document.getElementById('copyBtn').addEventListener('click', async function () {
+        const url = document.getElementById('shareUrl').value;
+        try {
+            await navigator.clipboard.writeText(url);
+            this.textContent = 'Copied';
+            setTimeout(() => this.textContent = 'Copy', 1500);
+        } catch (e) {
+            alert('Unable to copy URL');
+        }
+    });
+
+    // Optional: Ctrl+S to save
+    window.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('saveBtn').click();
+        }
+    });
+</script>
+</body>
+</html>
+
