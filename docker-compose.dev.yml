@@ -11,5 +11,17 @@ services:
       - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:najaspad;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=verysecretpassword
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect
+      - SPRING_JPA_SHOW_SQL=false
+      - SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=true
+      - SPRING_H2_CONSOLE_ENABLED=true
+      - SPRING_H2_CONSOLE_PATH=/h2-console
+      - SPRING_H2_CONSOLE_SETTINGS_WEB_ALLOW_OTHERS=true
+      - SPRING_H2_CONSOLE_SETTINGS_PASSWORD=sa
+
     restart: unless-stopped
 

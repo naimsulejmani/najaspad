@@ -1,5 +1,5 @@
 # Multi-stage build for Najaspad application
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
 
 WORKDIR /app
 
@@ -11,29 +11,16 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Runtime stage
-FROM eclipse-temurin:21-jre-alpine
+# Runtime stage (distroless, much smaller than full JRE images)
+FROM gcr.io/distroless/java17-debian12:nonroot
 
 WORKDIR /app
 
-# Install curl for healthchecks
-RUN apk add --no-cache curl
-
-# Create a non-root user to run the application
-RUN addgroup -S spring && adduser -S spring -G spring
-
 # Copy the built jar from build stage
-COPY --from=build /app/target/*.jar app.jar
-RUN chown spring:spring app.jar
-
-USER spring:spring
+COPY --from=build /app/target/*.jar /app/app.jar
 
 # Expose port 8080
 EXPOSE 8080
 
-# Set JVM options for container environment
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
-
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
-
+# Run the application (no shell in distroless)
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

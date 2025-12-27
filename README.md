@@ -29,13 +29,45 @@ Access the application at: **http://localhost:8080**
 ### Local Development
 
 #### Prerequisites
-- Java 21+
+- Java 17+
 - Maven 3.9+
 
 #### Run locally
 ```bash
 ./mvnw spring-boot:run
 ```
+
+## Deploy to Render.com (Docker)
+
+Render works great with this project using the **distroless Java 17 runtime image**.
+
+This repo can run on Render **without Postgres** by using **H2 (file-based)** in the `prod` profile.
+Note: on Render free tier the filesystem is typically **ephemeral**, so your notes may reset on redeploy unless you attach a persistent disk.
+
+### Option A: Let Render build from your repo (recommended)
+
+1. In Render, create a **New Web Service** and connect your GitHub repo.
+2. Choose **Environment: Docker**.
+3. Set **Dockerfile Path** to:
+   - `Dockerfile.runtime`
+4. Set **Port** to `8080` (the app also honors Render's `PORT` env var)
+5. Add environment variables:
+   - `SPRING_PROFILES_ACTIVE=prod`
+
+Optional (only if you want to override defaults):
+- `SPRING_DATASOURCE_URL` (defaults to `jdbc:h2:file:/data/najaspad;...`)
+- `SPRING_DATASOURCE_USERNAME` (defaults to `sa`)
+- `SPRING_DATASOURCE_PASSWORD` (defaults to `sa`)
+
+Optional health check path:
+- `/actuator/health`
+
+### Option B: Build locally and push to a registry
+
+Build runtime image:
+- `docker build -f Dockerfile.runtime -t najaspad:runtime .`
+
+Then push it to Docker Hub / GHCR and configure Render to deploy from that image.
 
 ## Docker Deployment
 
@@ -97,7 +129,7 @@ docker-compose up --build
 
 ## Architecture
 
-- **Backend**: Spring Boot 4.0.1, Java 21
+- **Backend**: Spring Boot 4.0.1, Java 17
 - **Frontend**: Thymeleaf, Bootstrap 5, Quill.js
 - **Database**: H2 (dev) / PostgreSQL (prod)
 - **Deployment**: Docker & Docker Compose
@@ -156,4 +188,3 @@ This project is created for educational purposes.
 ## Contributing
 
 Feel free to submit issues and enhancement requests!
-

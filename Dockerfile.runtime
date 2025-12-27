@@ -1,0 +1,22 @@
+# Builds only the final runtime image (distroless Java 17).
+# Usage:
+#   docker build -f Dockerfile.runtime -t najaspad:runtime .
+
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -B -q dependency:go-offline
+COPY src ./src
+RUN mvn -B -q clean package -DskipTests
+RUN mkdir -p /tmp/data
+
+FROM gcr.io/distroless/java17-debian12:nonroot
+WORKDIR /app
+
+# H2 file-based DB location (see application-prod.properties)
+COPY --from=build /tmp/data /data
+
+COPY --from=build /app/target/*.jar /app/app.jar
+
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","/app/app.jar"]

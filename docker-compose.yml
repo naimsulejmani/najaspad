@@ -17,41 +17,35 @@ services:
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
     depends_on:
       - postgres
-    networks:
-      - najaspad-network
+#    networks:
+#      - najaspad-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: najaspad-db
-    environment:
-      - POSTGRES_DB=najaspad
-      - POSTGRES_USER=najaspad
-      - POSTGRES_PASSWORD=najaspad_password
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - najaspad-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U najaspad"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres-data:
-    driver: local
-
-networks:
-  najaspad-network:
-    driver: bridge
+#
+#  postgres:
+#    image: postgres:16-alpine
+#    container_name: najaspad-db
+#    environment:
+#      - POSTGRES_DB=najaspad
+#      - POSTGRES_USER=najaspad
+#      - POSTGRES_PASSWORD=najaspad_password
+#    volumes:
+#      - postgres-data:/var/lib/postgresql/data
+#    ports:
+#      - "5432:5432"
+#    networks:
+#      - najaspad-network
+#    restart: unless-stopped
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U najaspad"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#volumes:
+#  postgres-data:
+#    driver: local
+#
+#networks:
+#  najaspad-network:
+#    driver: bridge
 
